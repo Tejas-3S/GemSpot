@@ -61,10 +61,16 @@ export default function GemCard({
       {imageUrl && (
         <div className="w-full h-48 bg-slate-700 overflow-hidden">
           <img
-            src={imageUrl}
-            alt={placeName}
-            className="w-full h-full object-cover"
-          />
+            
+  src={imageUrl}
+  alt={placeName}
+  className="w-full h-full object-cover"
+  loading="lazy"
+  decoding="async"
+/>
+            
+
+        
         </div>
       )}
 

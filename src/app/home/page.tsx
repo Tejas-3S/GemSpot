@@ -1,11 +1,21 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/navigation";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  orderBy,
+  query,
+  limit,
+  startAfter,
+  getDocs,
+  DocumentSnapshot,
+} from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
 import GemCard from "@/components/GemCard";
+import SkeletonCard from "@/components/SkeletonCard";
+import ErrorMessage from "@/components/ErrorMessage";
 import { Search } from "lucide-react";
 
 interface Gem {
@@ -23,47 +33,94 @@ interface Gem {
   createdAt: any;
 }
 
+const PAGE_SIZE = 10;
+
 export default function HomePage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
   const [gems, setGems] = useState<Gem[]>([]);
   const [loadingGems, setLoadingGems] = useState(true);
-  const [activeTab, setActiveTab] = useState<"nearby" | "trending" | "new">("new");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [activeTab, setActiveTab] = useState<"new" | "trending">("new");
+  const [error, setError] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user) fetchGems();
-  }, [user]);
+    if (user) {
+      setGems([]);
+      setLastDoc(null);
+      setHasMore(true);
+      fetchGems(true);
+    }
+  }, [user, activeTab]);
 
-  const fetchGems = async () => {
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      fetchGems(true);
+    };
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const fetchGems = async (fresh = false) => {
+    if (!navigator.onLine) {
+      setIsOnline(false);
+      setLoadingGems(false);
+      return;
+    }
+
+    fresh ? setLoadingGems(true) : setLoadingMore(true);
+    setError(false);
+
     try {
-      const q = query(
+      const orderField = activeTab === "trending" ? "upvotes" : "createdAt";
+      let q = query(
         collection(db, "gems"),
-        orderBy("createdAt", "desc")
+        orderBy(orderField, "desc"),
+        limit(PAGE_SIZE)
       );
+
+      if (!fresh && lastDoc) {
+        q = query(
+          collection(db, "gems"),
+          orderBy(orderField, "desc"),
+          startAfter(lastDoc),
+          limit(PAGE_SIZE)
+        );
+      }
+
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Gem[];
-      setGems(data);
+
+      if (fresh) {
+        setGems(data);
+      } else {
+        setGems((prev) => [...prev, ...data]);
+      }
+
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
+      setHasMore(snapshot.docs.length === PAGE_SIZE);
     } catch (e) {
       console.error(e);
+      setError(true);
     }
-    setLoadingGems(false);
-  };
 
-  const getFilteredGems = () => {
-    if (activeTab === "trending") {
-      return [...gems].sort((a, b) => b.upvotes - a.upvotes);
-    }
-    if (activeTab === "nearby") {
-      return gems;
-    }
-    return gems;
+    fresh ? setLoadingGems(false) : setLoadingMore(false);
   };
 
   if (loading) {
@@ -104,13 +161,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Feed Tabs */}
       <div className="px-4 pt-4 max-w-lg mx-auto">
+
+        {/* Tabs */}
         <div className="flex gap-2 mb-4">
           {[
             { key: "new", label: "New" },
             { key: "trending", label: "Trending" },
-            { key: "nearby", label: "Near Me" },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -126,31 +183,40 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Loading State */}
+        {/* Skeleton Loading */}
         {loadingGems && (
-          <div className="flex justify-center py-20">
-            <p className="text-teal-400">Loading gems...</p>
+          <div>
+            {[1, 2, 3].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         )}
 
-        {/* Empty State */}
-        {!loadingGems && gems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <span className="text-6xl">💎</span>
-            <p className="text-slate-400 text-center">
-              No gems yet in your area!
-            </p>
-            <button
-              onClick={() => router.push("/post")}
-              className="bg-teal-600 text-white px-6 py-3 rounded-2xl font-semibold"
-            >
-              Post the first gem!
-            </button>
-          </div>
+        {/* Offline */}
+        {!loadingGems && !isOnline && (
+          <ErrorMessage type="network" onRetry={() => fetchGems(true)} />
+        )}
+
+        {/* Error */}
+        {!loadingGems && error && isOnline && (
+          <ErrorMessage
+            type="general"
+            message="Failed to load gems"
+            onRetry={() => fetchGems(true)}
+          />
+        )}
+
+        {/* Empty */}
+        {!loadingGems && !error && isOnline && gems.length === 0 && (
+          <ErrorMessage
+            type="empty"
+            message="Be the first to post a gem!"
+            onRetry={() => router.push("/post")}
+          />
         )}
 
         {/* Gem Cards */}
-        {!loadingGems && getFilteredGems().map((gem) => (
+        {!loadingGems && gems.map((gem) => (
           <div
             key={gem.id}
             onClick={() => router.push(`/gem/${gem.id}`)}
@@ -159,6 +225,24 @@ export default function HomePage() {
             <GemCard {...gem} />
           </div>
         ))}
+
+        {/* Load More Button */}
+        {!loadingGems && hasMore && gems.length > 0 && (
+          <button
+            onClick={() => fetchGems(false)}
+            disabled={loadingMore}
+            className="w-full py-3 text-teal-400 text-sm font-semibold disabled:text-slate-600"
+          >
+            {loadingMore ? "Loading more..." : "Load more gems ↓"}
+          </button>
+        )}
+
+        {/* End of Feed */}
+        {!loadingGems && !hasMore && gems.length > 0 && (
+          <p className="text-center text-slate-600 text-sm py-4">
+            You've seen all gems! 💎
+          </p>
+        )}
 
         <div className="h-24" />
       </div>
