@@ -31,6 +31,8 @@ export default function PostPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
 
   const [placeName, setPlaceName] = useState("");
   const [itemName, setItemName] = useState("");
@@ -136,58 +138,124 @@ export default function PostPage() {
       <div className="px-4 py-6 max-w-lg mx-auto space-y-5">
 
         {/* Photo Upload */}
-        <div>
-          <label className="text-slate-300 text-sm font-medium mb-2 block">
-            📸 Photo
-            <span className="text-slate-500 ml-2 font-normal">*</span>
-          </label>
+<div>
+  <label className="text-slate-300 text-sm font-medium mb-2 block">
+    📸 Photo
+    <span className="text-red-400 ml-1">*</span>
+  </label>
 
-          {/* Preview */}
-          {imagePreview ? (
-            <div className="relative w-full h-48 rounded-2xl overflow-hidden">
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={handleRemoveImage}
-                className="absolute top-2 right-2 bg-black bg-opacity-60 text-white rounded-full p-1"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-slate-800 border-2 border-dashed border-slate-600 rounded-2xl px-4 py-8 flex flex-col items-center gap-3 hover:border-teal-500 transition-colors"
-            >
-              <div className="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center">
-                <Upload size={24} className="text-teal-400" />
-              </div>
-              <div className="text-center">
-                <p className="text-slate-300 text-sm font-medium">
-                Tap to add photo
-              </p>
-              <p className="text-slate-500 text-xs mt-1">
-                Choose from gallery or take a photo
-              </p>
-              <p className="text-xs text-red-400 mt-1">
-                Required *
-                </p>
-              </div>
-            </button>
-          )}
-
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
+  {/* Preview */}
+  {imagePreview ? (
+    <div className="relative w-full h-48 rounded-2xl overflow-hidden">
+      <img
+        src={imagePreview}
+        alt="Preview"
+        className="w-full h-full object-cover"
+      />
+      <button
+        onClick={handleRemoveImage}
+        className="absolute top-2 right-2 bg-black bg-opacity-60 text-white rounded-full p-1"
+      >
+        <X size={18} />
+      </button>
+    </div>
+  ) : (
+    <>
+      {/* Main Upload Button */}
+      <button
+        onClick={() => setShowPhotoOptions(true)}
+        className="w-full bg-slate-800 border-2 border-dashed border-slate-600 rounded-2xl px-4 py-8 flex flex-col items-center gap-3 hover:border-teal-500 transition-colors"
+      >
+        <div className="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center">
+          <Upload size={24} className="text-teal-400" />
         </div>
+        <div className="text-center">
+          <p className="text-slate-300 text-sm font-medium">
+            Tap to add photo
+          </p>
+          <p className="text-slate-500 text-xs mt-1">
+            Camera or Gallery
+          </p>
+        </div>
+      </button>
+      <p className="text-red-400 text-xs mt-1 text-center">
+        Photo is required *
+      </p>
+    </>
+  )}
+
+  {/* Hidden Camera Input */}
+  <input
+    ref={cameraInputRef}
+    type="file"
+    accept="image/*"
+    capture="environment"
+    onChange={handleImageSelect}
+    className="hidden"
+  />
+
+  {/* Hidden Gallery Input */}
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    onChange={handleImageSelect}
+    className="hidden"
+  />
+
+  {/* Photo Options Modal */}
+  {showPhotoOptions && (
+    <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-end">
+      <div className="bg-slate-900 rounded-t-3xl w-full p-6 space-y-3">
+        <h2 className="text-white font-bold text-lg mb-4">
+          Add Photo
+        </h2>
+
+        {/* Camera Option */}
+        <button
+          onClick={() => {
+            setShowPhotoOptions(false);
+            cameraInputRef.current?.click();
+          }}
+          className="w-full bg-slate-800 text-white rounded-2xl px-4 py-4 flex items-center gap-4 hover:bg-slate-700 transition-colors"
+        >
+          <div className="w-12 h-12 bg-teal-900 rounded-full flex items-center justify-center">
+            <span className="text-2xl">📷</span>
+          </div>
+          <div className="text-left">
+            <p className="font-semibold">Take a Photo</p>
+            <p className="text-slate-400 text-sm">Open camera</p>
+          </div>
+        </button>
+
+        {/* Gallery Option */}
+        <button
+          onClick={() => {
+            setShowPhotoOptions(false);
+            fileInputRef.current?.click();
+          }}
+          className="w-full bg-slate-800 text-white rounded-2xl px-4 py-4 flex items-center gap-4 hover:bg-slate-700 transition-colors"
+        >
+          <div className="w-12 h-12 bg-purple-900 rounded-full flex items-center justify-center">
+            <span className="text-2xl">🖼️</span>
+          </div>
+          <div className="text-left">
+            <p className="font-semibold">Choose from Gallery</p>
+            <p className="text-slate-400 text-sm">Pick existing photo</p>
+          </div>
+        </button>
+
+        {/* Cancel */}
+        <button
+          onClick={() => setShowPhotoOptions(false)}
+          className="w-full bg-slate-700 text-slate-300 rounded-2xl px-4 py-4 font-semibold"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Location */}
         <div>
