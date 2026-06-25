@@ -205,7 +205,7 @@ export default function PostPage() {
 
   {/* Photo Options Modal */}
   {showPhotoOptions && (
-    <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-end">
+    <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-end">
       <div className="bg-slate-900 rounded-t-3xl w-full p-6 space-y-3">
         <h2 className="text-white font-bold text-lg mb-4">
           Add Photo

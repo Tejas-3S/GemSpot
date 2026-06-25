@@ -362,7 +362,7 @@ export default function GemDetailPage() {
 
       {/* Report Modal */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-end">
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-end">
           <div className="bg-slate-900 rounded-t-3xl w-full p-6 space-y-4">
             <h2 className="text-white font-bold text-lg">Report this Gem</h2>
             <p className="text-slate-400 text-sm">

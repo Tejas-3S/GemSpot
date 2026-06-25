@@ -185,7 +185,7 @@ export default function LocationPicker({
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col justify-end">
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex flex-col justify-end">
           <div className="bg-slate-900 rounded-t-3xl flex flex-col max-h-[85vh]">
 
             {/* Modal Header */}
@@ -268,7 +268,7 @@ export default function LocationPicker({
 
             {/* Map Mode — Full Screen */}
             {mode === "map" && (
-              <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
+              <div className="fixed inset-0 z-[100] flex flex-col bg-slate-900">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
