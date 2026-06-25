@@ -139,7 +139,7 @@ export default function PostPage() {
         <div>
           <label className="text-slate-300 text-sm font-medium mb-2 block">
             📸 Photo
-            <span className="text-slate-500 ml-2 font-normal">(optional)</span>
+            <span className="text-slate-500 ml-2 font-normal">*</span>
           </label>
 
           {/* Preview */}
@@ -167,10 +167,13 @@ export default function PostPage() {
               </div>
               <div className="text-center">
                 <p className="text-slate-300 text-sm font-medium">
-                  Tap to upload photo
-                </p>
-                <p className="text-slate-500 text-xs mt-1">
-                  JPG, PNG up to 5MB
+                Tap to add photo
+              </p>
+              <p className="text-slate-500 text-xs mt-1">
+                Choose from gallery or take a photo
+              </p>
+              <p className="text-xs text-red-400 mt-1">
+                Required *
                 </p>
               </div>
             </button>
@@ -181,7 +184,6 @@ export default function PostPage() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleImageSelect}
             className="hidden"
           />
