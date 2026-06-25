@@ -266,21 +266,42 @@ export default function LocationPicker({
               </div>
             )}
 
-            {/* Map Mode */}
+            {/* Map Mode — Full Screen */}
             {mode === "map" && (
-              <div className="flex flex-col" style={{ height: "60vh" }}>
-                <p className="text-slate-400 text-xs px-4 py-2">
-                  Tap on the map or drag the pin to select location
-                </p>
+              <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
+                  <button
+                    onClick={() => setMode("choose")}
+                    className="text-teal-400 text-sm font-semibold"
+                  >
+                    ← Back
+                  </button>
+                  <h2 className="text-white font-bold text-lg">Pin on Map</h2>
+                  <div className="w-12" />
+                </div>
+
+                {/* Instruction */}
+                <div className="px-4 py-2 bg-slate-800 shrink-0">
+                  <p className="text-slate-400 text-xs text-center">
+                    Tap anywhere on map or drag the pin to set location
+                  </p>
+                </div>
+
+                {/* Map — takes all available space */}
                 <div ref={mapRef} className="flex-1" />
-                <div className="p-4 flex gap-3 bg-slate-900">
+
+                {/* Confirm Button — always fixed at bottom */}
+                <div className="px-4 py-4 bg-slate-900 border-t border-slate-700 shrink-0">
                   <button
                     onClick={handleConfirmMapLocation}
-                    className="flex-1 bg-teal-600 text-white py-3 rounded-2xl font-semibold"
+                    className="w-full bg-teal-600 text-white py-4 rounded-2xl font-bold text-lg"
                   >
-                    Confirm Location ✓
+                    ✓ Confirm Location
                   </button>
                 </div>
+
               </div>
             )}
 
