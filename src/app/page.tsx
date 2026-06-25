@@ -4,6 +4,7 @@ import { signInWithPopup } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { createOrGetUser } from "@/lib/userUtils";
 
 export default function LoginPage() {
   const [user, loading] = useAuthState(auth);
@@ -16,12 +17,13 @@ export default function LoginPage() {
   }, [user, router]);
 
   const handleGoogleLogin = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
-  };
+  try {
+    const result = await signInWithPopup(auth, provider);
+    await createOrGetUser(result.user);
+  } catch (error) {
+    console.error("Login failed:", error);
+  }
+};
 
   if (loading) {
     return (
