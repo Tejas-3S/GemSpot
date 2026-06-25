@@ -111,11 +111,12 @@ export default function PostPage() {
 
       alert("Gem posted successfully! 💎");
       router.push("/home");
-    } catch (error) {
-      alert("Failed to post gem. Try again!");
+    } catch (error: any) {
+      console.error("Full error:", error);
+      alert("Error: " + error.message);
       setUploadingImage(false);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
