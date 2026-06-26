@@ -14,7 +14,7 @@ import {
 import { Trash2, Eye, Shield, Users, Gem, Flag } from "lucide-react";
 
 // 🔒 Add your Gmail here — only you can access admin
-const ADMIN_EMAILS = ["loopholes906@gmail.com"];
+import { isAdmin } from "@/config/app.config";
 
 interface Gem {
   id: string;
@@ -41,7 +41,7 @@ export default function AdminPage() {
         router.push("/");
         return;
       }
-      if (!ADMIN_EMAILS.includes(user.email || "")) {
+      if (!isAdmin(user.email)) {
         router.push("/home");
         return;
       }

@@ -1,4 +1,5 @@
 "use client";
+import { isAdmin } from "@/config/app.config";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
@@ -423,7 +424,7 @@ export default function ProfilePage() {
         )}
 
         {/* Admin Button */}
-        {user?.email === "your@gmail.com" && (
+        {isAdmin(user?.email) && (
           <button
             onClick={() => router.push("/admin")}
             className="w-full bg-red-900 border border-red-700 text-red-400 py-3 rounded-2xl text-sm font-semibold"
