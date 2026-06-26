@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useUserContext } from "@/context/UserContext";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Clock, Upload, ChevronDown, X, } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -28,6 +29,7 @@ const BEST_TIMES = [
 ];
 
 export default function PostPage() {
+  const { profile } = useUserContext();
   const [user] = useAuthState(auth);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,9 +101,9 @@ export default function PostPage() {
         location,
         locationName,
         imageUrl,
-        postedBy: user.displayName,
+        postedBy: profile?.name || user.displayName,
         postedByUid: user.uid,
-        postedByPhoto: user.photoURL,
+        postedByPhoto: profile?.photo || user.photoURL,
         upvotes: 0,
         vibeRating: 0,
         vibeCount: 0,
