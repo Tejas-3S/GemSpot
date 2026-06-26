@@ -142,7 +142,9 @@ export default function HomePage() {
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <h1 className="text-white font-bold text-xl">💎 GemSpot</h1>
-            <p className="text-slate-400 text-xs">Pune, Maharashtra</p>
+            <p className="text-slate-400 text-xs">
+  {profile?.city ? `📍 ${profile.city}` : "📍 Set your city in profile"}
+</p>
           </div>
           <div className="flex items-center gap-3">
             <button
