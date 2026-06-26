@@ -153,6 +153,13 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        {/* Edit Profile Button — add exactly here */}
+        <button
+          onClick={() => router.push("/edit-profile")}
+          className="mt-3 w-full bg-slate-700 text-slate-300 text-sm px-4 py-2 rounded-full"
+        >
+          ✏️ Edit Profile
+        </button>
 
         {/* Points & Level */}
         <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
