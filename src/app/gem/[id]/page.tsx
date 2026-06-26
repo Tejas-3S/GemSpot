@@ -1,4 +1,5 @@
 "use client";
+import { createNotification } from "@/lib/notifications";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
@@ -80,82 +81,124 @@ export default function GemDetailPage() {
   };
 
   const handleUpvote = async () => {
-    if (!user || !gem || upvoting) return;
-    setUpvoting(true);
-    try {
-      const gemRef = doc(db, "gems", gem.id);
-      const alreadyUpvoted = gem.upvotedBy?.includes(user.uid);
-      if (alreadyUpvoted) {
-        await updateDoc(gemRef, {
-          upvotes: increment(-1),
-          upvotedBy: arrayRemove(user.uid),
-        });
-        setGem((prev) =>
-          prev
-            ? {
-                ...prev,
-                upvotes: prev.upvotes - 1,
-                upvotedBy: prev.upvotedBy.filter((u) => u !== user.uid),
-              }
-            : prev
-        );
-      } else {
-        await updateDoc(gemRef, {
-          upvotes: increment(1),
-          upvotedBy: arrayUnion(user.uid),
-        });
-        setGem((prev) =>
-          prev
-            ? {
-                ...prev,
-                upvotes: prev.upvotes + 1,
-                upvotedBy: [...(prev.upvotedBy || []), user.uid],
-              }
-            : prev
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setUpvoting(false);
-  };
-
-  const handleVibeRating = async (score: number) => {
-    if (!user || !gem || rating) return;
-    setRating(true);
-    try {
-      const gemRef = doc(db, "gems", gem.id);
-      const existingRating = gem.vibeRatings?.[user.uid];
-      const newVibeRatings = { ...gem.vibeRatings, [user.uid]: score };
-      const ratings = Object.values(newVibeRatings) as number[];
-      const avgRating =
-        ratings.reduce((a, b) => a + b, 0) / ratings.length;
-      const isVerified =
-        ratings.filter((r) => r >= 3).length >= 5;
-
+  if (!user || !gem || upvoting) return;
+  setUpvoting(true);
+  try {
+    const gemRef = doc(db, "gems", gem.id);
+    const alreadyUpvoted = gem.upvotedBy?.includes(user.uid);
+    if (alreadyUpvoted) {
       await updateDoc(gemRef, {
-        [`vibeRatings.${user.uid}`]: score,
-        vibeRating: avgRating,
-        vibeCount: ratings.length,
-        isVerified,
+        upvotes: increment(-1),
+        upvotedBy: arrayRemove(user.uid),
       });
-
       setGem((prev) =>
         prev
           ? {
               ...prev,
-              vibeRatings: newVibeRatings,
-              vibeRating: avgRating,
-              vibeCount: ratings.length,
-              isVerified,
+              upvotes: prev.upvotes - 1,
+              upvotedBy: prev.upvotedBy.filter((u) => u !== user.uid),
             }
           : prev
       );
-    } catch (e) {
-      console.error(e);
+    } else {
+      await updateDoc(gemRef, {
+        upvotes: increment(1),
+        upvotedBy: arrayUnion(user.uid),
+      });
+      setGem((prev) =>
+        prev
+          ? {
+              ...prev,
+              upvotes: prev.upvotes + 1,
+              upvotedBy: [...(prev.upvotedBy || []), user.uid],
+            }
+          : prev
+      );
+
+      // Send notification to gem owner (not to yourself)
+      if (gem.postedByUid !== user.uid) {
+        await createNotification(
+          gem.postedByUid,
+          "upvote",
+          gem.id,
+          gem.itemName,
+          user.displayName || "Someone"
+        );
+      }
+
+      // Check discoverer milestones
+      const newUpvotes = gem.upvotes + 1;
+      if ([5, 20, 45, 95].includes(newUpvotes) && gem.postedByUid !== user.uid) {
+        await createNotification(
+          gem.postedByUid,
+          "discoverer",
+          gem.id,
+          gem.itemName,
+          user.displayName || "Someone"
+        );
+      }
     }
-    setRating(false);
-  };
+  } catch (e) {
+    console.error(e);
+  }
+  setUpvoting(false);
+};
+
+  const handleVibeRating = async (score: number) => {
+  if (!user || !gem || rating) return;
+  setRating(true);
+  try {
+    const gemRef = doc(db, "gems", gem.id);
+    const newVibeRatings = { ...gem.vibeRatings, [user.uid]: score };
+    const ratings = Object.values(newVibeRatings) as number[];
+    const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+    const isVerified = ratings.filter((r) => r >= 3).length >= 5;
+
+    await updateDoc(gemRef, {
+      [`vibeRatings.${user.uid}`]: score,
+      vibeRating: avgRating,
+      vibeCount: ratings.length,
+      isVerified,
+    });
+
+    setGem((prev) =>
+      prev
+        ? {
+            ...prev,
+            vibeRatings: newVibeRatings,
+            vibeRating: avgRating,
+            vibeCount: ratings.length,
+            isVerified,
+          }
+        : prev
+    );
+
+    // Send rating notification to gem owner
+    if (gem.postedByUid !== user.uid) {
+      await createNotification(
+        gem.postedByUid,
+        "rating",
+        gem.id,
+        gem.itemName,
+        user.displayName || "Someone"
+      );
+    }
+
+    // Send verified notification
+    if (isVerified && !gem.isVerified && gem.postedByUid !== user.uid) {
+      await createNotification(
+        gem.postedByUid,
+        "verified",
+        gem.id,
+        gem.itemName,
+        user.displayName || "Someone"
+      );
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  setRating(false);
+};
 
   const handleDirections = () => {
     if (!gem?.location) return;

@@ -1,4 +1,6 @@
 "use client";
+import { useUserContext } from "@/context/UserContext";
+import { Search, Bell } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -16,7 +18,7 @@ import BottomNav from "@/components/BottomNav";
 import GemCard from "@/components/GemCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import ErrorMessage from "@/components/ErrorMessage";
-import { Search } from "lucide-react";
+
 
 interface Gem {
   id: string;
@@ -46,6 +48,7 @@ export default function HomePage() {
   const [isOnline, setIsOnline] = useState(true);
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const { profile } = useUserContext();
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
@@ -148,10 +151,16 @@ export default function HomePage() {
             >
               <Search size={22} />
             </button>
+            <button
+              onClick={() => router.push("/notifications")}
+              className="text-slate-400"
+            >
+              <Bell size={22} />
+            </button>
             <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-teal-400">
-              {user?.photoURL && (
+              {(profile?.photo || user?.photoURL) && (
                 <img
-                  src={user.photoURL}
+                  src={profile?.photo || user?.photoURL || ""}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
