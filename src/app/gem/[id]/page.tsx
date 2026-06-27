@@ -20,6 +20,7 @@ import {
   Flag,
   BadgeCheck,
   ArrowLeft,
+  Share2,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 
@@ -201,9 +202,30 @@ export default function GemDetailPage() {
 };
 
   const handleDirections = () => {
-    if (!gem?.location) return;
+    if (!gem) return;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${gem.location.lat},${gem.location.lng}&travelmode=walking`;
     window.open(url, "_blank");
+  };
+
+  const handleShare = async () => {
+    if (!gem) return;
+    const url = `${window.location.origin}/gem/${gem.id}`;
+    const shareData = {
+      title: `${gem.itemName} at ${gem.placeName}`,
+      text: `Check out ${gem.itemName} at ${gem.placeName} on GemSpot! ${gem.price} — ${gem.bestTime}`,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied to clipboard! 📋");
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleReport = async () => {
@@ -335,7 +357,7 @@ export default function GemDetailPage() {
           </div>
         </div>
 
-        {/* Upvote & Directions */}
+        {/* Upvote, Directions & Share */}
         <div className="flex gap-3">
           <button
             onClick={handleUpvote}
@@ -347,14 +369,23 @@ export default function GemDetailPage() {
             }`}
           >
             <ThumbsUp size={18} />
-            <span>{gem.upvotes} Upvotes</span>
+            <span>{gem.upvotes}</span>
           </button>
+
           <button
             onClick={handleDirections}
             className="flex-1 flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 py-3 rounded-2xl font-semibold"
           >
             <Navigation size={18} className="text-teal-400" />
             <span>Directions</span>
+          </button>
+
+          <button
+            onClick={handleShare}
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 py-3 rounded-2xl font-semibold"
+          >
+            <Share2 size={18} className="text-blue-400" />
+            <span>Share</span>
           </button>
         </div>
 
