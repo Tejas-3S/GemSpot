@@ -21,6 +21,7 @@ import {
   BadgeCheck,
   ArrowLeft,
   Share2,
+  Bookmark,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 
@@ -62,6 +63,26 @@ export default function GemDetailPage() {
   const [rating, setRating] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (user && gem) checkIfSaved();
+  }, [user, gem]);
+
+  const checkIfSaved = async () => {
+    if (!user || !gem) return;
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const savedGems = userSnap.data().savedGems || [];
+        setSaved(savedGems.includes(gem.id));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     fetchGem();
@@ -79,6 +100,28 @@ export default function GemDetailPage() {
       console.error(e);
     }
     setLoading(false);
+  };
+
+  const handleSave = async () => {
+    if (!user || !gem) return;
+    setSaving(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      if (saved) {
+        await updateDoc(userRef, {
+          savedGems: arrayRemove(gem.id),
+        });
+        setSaved(false);
+      } else {
+        await updateDoc(userRef, {
+          savedGems: arrayUnion(gem.id),
+        });
+        setSaved(true);
+      }
+    } catch (e) {
+      alert("Failed to save gem. Try again!");
+    }
+    setSaving(false);
   };
 
   const handleUpvote = async () => {
@@ -357,37 +400,50 @@ export default function GemDetailPage() {
           </div>
         </div>
 
-        {/* Upvote, Directions & Share */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleUpvote}
-            disabled={upvoting}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold transition-colors ${
-              hasUpvoted
-                ? "bg-teal-600 text-white"
-                : "bg-slate-800 text-slate-300 border border-slate-600"
-            }`}
-          >
-            <ThumbsUp size={18} />
-            <span>{gem.upvotes}</span>
-          </button>
+        {/* Upvote, Directions, Share & Save */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleUpvote}
+              disabled={upvoting}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold transition-colors ${
+                hasUpvoted
+                  ? "bg-teal-600 text-white"
+                  : "bg-slate-800 text-slate-300 border border-slate-600"
+              }`}
+            >
+              <ThumbsUp size={18} />
+              <span>{gem.upvotes}</span>
+            </button>
 
-          <button
-            onClick={handleDirections}
-            className="flex-1 flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 py-3 rounded-2xl font-semibold"
-          >
-            <Navigation size={18} className="text-teal-400" />
-            <span>Directions</span>
-          </button>
+            <button
+              onClick={handleDirections}
+              className="flex-1 flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 py-3 rounded-2xl font-semibold"
+            >
+              <Navigation size={18} className="text-teal-400" />
+              <span>Go</span>
+            </button>
 
-          <button
-            onClick={handleShare}
-            className="flex-1 flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 py-3 rounded-2xl font-semibold"
-          >
-            <Share2 size={18} className="text-blue-400" />
-            <span>Share</span>
-          </button>
-        </div>
+            <button
+              onClick={handleShare}
+              className="flex-1 flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 py-3 rounded-2xl font-semibold"
+            >
+              <Share2 size={18} className="text-blue-400" />
+              <span>Share</span>
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold transition-colors ${
+                saved
+                  ? "bg-yellow-600 text-white"
+                  : "bg-slate-800 text-slate-300 border border-slate-600"
+              }`}
+            >
+              <Bookmark size={18} className={saved ? "text-white" : "text-yellow-400"} />
+              <span>{saved ? "Saved" : "Save"}</span>
+            </button>
+          </div>
 
         {/* Vibe Rating */}
         <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
