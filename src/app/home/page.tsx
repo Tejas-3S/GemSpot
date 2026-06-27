@@ -1,4 +1,5 @@
 "use client";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useUserContext } from "@/context/UserContext";
 import { Search, Bell } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
@@ -49,6 +50,7 @@ export default function HomePage() {
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const { profile } = useUserContext();
+  const { isPulling, pullDistance } = usePullToRefresh(() => fetchGems(true));
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
@@ -136,6 +138,18 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-900">
+
+    {/* Pull to Refresh Indicator */}
+    {pullDistance > 0 && (
+      <div
+        className="flex items-center justify-center overflow-hidden transition-all"
+        style={{ height: `${pullDistance}px` }}
+      >
+        <div className={`text-teal-400 text-sm flex items-center gap-2 ${isPulling ? "opacity-100" : "opacity-50"}`}>
+          {isPulling ? "↓ Release to refresh" : "↓ Pull to refresh"}
+        </div>
+      </div>
+    )}
 
       {/* Header */}
       <div className="sticky top-0 bg-slate-900 border-b border-slate-700 px-4 py-3 z-40">
