@@ -42,6 +42,7 @@ interface Gem {
   isVerified: boolean;
   location: { lat: number; lng: number };
   locationName: string;
+  imageUrl?: string;
   createdAt: any;
 }
 
@@ -65,6 +66,7 @@ export default function GemDetailPage() {
   const [reportReason, setReportReason] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
     if (user && gem) checkIfSaved();
@@ -346,10 +348,33 @@ export default function GemDetailPage() {
 
         {/* Hero Card */}
         <div className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700">
-          {/* Image placeholder */}
-          <div className="w-full h-48 bg-gradient-to-br from-teal-900 to-slate-800 flex items-center justify-center">
-            <span className="text-7xl">💎</span>
-          </div>
+          {/* Image */}
+<div className="w-full h-48 bg-slate-700 relative overflow-hidden">
+  {gem.imageUrl ? (
+    <>
+      {/* Skeleton while loading */}
+      {imageLoading && (
+        <div className="absolute inset-0 bg-slate-700 animate-pulse flex items-center justify-center">
+          <span className="text-4xl opacity-30">💎</span>
+        </div>
+      )}
+      <img
+        src={gem.imageUrl}
+        alt={gem.itemName}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
+          imageLoading ? "opacity-0" : "opacity-100"
+        }`}
+        onLoad={() => setImageLoading(false)}
+        onError={() => setImageLoading(false)}
+        loading="lazy"
+      />
+    </>
+  ) : (
+    <div className="w-full h-full bg-gradient-to-br from-teal-900 to-slate-800 flex items-center justify-center">
+      <span className="text-7xl">💎</span>
+    </div>
+  )}
+</div>
 
           <div className="p-4">
             {/* Discoverer Tag */}
