@@ -13,6 +13,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  getDoc,
   orderBy,
 } from "firebase/firestore";
 import {
@@ -63,10 +64,12 @@ export default function ProfilePage() {
   const [gems, setGems] = useState<GemItem[]>([]);
   const [points, setPoints] = useState(0);
   const [loadingGems, setLoadingGems] = useState(true);
-  const [activeTab, setActiveTab] = useState<"gems" | "badges">("gems");
+  const [activeTab, setActiveTab] = useState<"gems" | "saved" | "badges">("gems");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [gemToDelete, setGemToDelete] = useState<string | null>(null);
+  const [savedGems, setSavedGems] = useState<GemItem[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
 
   const handleDeleteGem = async () => {
   if (!gemToDelete) return;
@@ -89,6 +92,10 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) fetchUserGems();
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === "saved" && profile) fetchSavedGems();
+  }, [activeTab, profile]);
 
   const fetchUserGems = async () => {
     if (!user) return;
@@ -117,6 +124,30 @@ export default function ProfilePage() {
       console.error(e);
     }
     setLoadingGems(false);
+  };
+
+  const fetchSavedGems = async () => {
+    if (!user || !profile) return;
+    setLoadingSaved(true);
+    try {
+      const savedIds = profile.savedGems || [];
+      if (savedIds.length === 0) {
+        setSavedGems([]);
+        setLoadingSaved(false);
+        return;
+      }
+      const savedData: GemItem[] = [];
+      for (const gemId of savedIds) {
+        const docSnap = await getDoc(doc(db, "gems", gemId));
+        if (docSnap.exists()) {
+          savedData.push({ id: docSnap.id, ...docSnap.data() } as GemItem);
+        }
+      }
+      setSavedGems(savedData);
+    } catch (e) {
+      console.error(e);
+    }
+    setLoadingSaved(false);
   };
 
   const handleSignOut = async () => {
@@ -276,6 +307,7 @@ export default function ProfilePage() {
         <div className="flex gap-2">
           {[
             { key: "gems", label: "💎 My Gems" },
+            { key: "saved", label: "🔖 Saved" },
             { key: "badges", label: "🏅 Badges" },
           ].map((tab) => (
             <button
@@ -291,6 +323,65 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+
+        {/* Saved Gems Tab */}
+        {activeTab === "saved" && (
+          <div className="space-y-3">
+            {loadingSaved && (
+              <p className="text-slate-400 text-sm text-center py-4">
+                Loading saved gems...
+              </p>
+            )}
+            {!loadingSaved && savedGems.length === 0 && (
+              <div className="text-center py-10">
+                <span className="text-5xl">🔖</span>
+                <p className="text-slate-400 text-sm mt-3">
+                  No saved gems yet!
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  Tap Save on any gem to bookmark it
+                </p>
+              </div>
+            )}
+            {savedGems.map((gem) => (
+              <button
+                key={gem.id}
+                onClick={() => router.push(`/gem/${gem.id}`)}
+                className="w-full bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden flex items-center gap-3 p-3 text-left"
+              >
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0">
+                  {gem.imageUrl ? (
+                    <img
+                      src={gem.imageUrl}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">
+                      💎
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">
+                    {gem.itemName}
+                  </p>
+                  <p className="text-teal-400 text-xs truncate">
+                    {gem.placeName}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-yellow-400 text-xs">{gem.price}</span>
+                    <span className="text-slate-400 text-xs">👍 {gem.upvotes}</span>
+                    {gem.isVerified && (
+                      <span className="text-teal-400 text-xs">✓</span>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-600 shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* My Gems Tab */}
         {activeTab === "gems" && (
