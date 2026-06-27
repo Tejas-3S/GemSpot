@@ -1,4 +1,5 @@
 "use client";
+
 import { isAdmin } from "@/config/app.config";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,6 +11,8 @@ import {
   query,
   where,
   getDocs,
+  deleteDoc,
+  doc,
   orderBy,
 } from "firebase/firestore";
 import {
@@ -61,6 +64,23 @@ export default function ProfilePage() {
   const [points, setPoints] = useState(0);
   const [loadingGems, setLoadingGems] = useState(true);
   const [activeTab, setActiveTab] = useState<"gems" | "badges">("gems");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [gemToDelete, setGemToDelete] = useState<string | null>(null);
+
+  const handleDeleteGem = async () => {
+  if (!gemToDelete) return;
+  setDeletingId(gemToDelete);
+  try {
+    await deleteDoc(doc(db, "gems", gemToDelete));
+    setGems((prev) => prev.filter((g) => g.id !== gemToDelete));
+    setShowDeleteModal(false);
+    setGemToDelete(null);
+  } catch (e) {
+    alert("Failed to delete gem. Try again!");
+  }
+  setDeletingId(null);
+};
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
@@ -368,10 +388,14 @@ export default function ProfilePage() {
                   </button>
                   <div className="w-px bg-slate-700" />
                   <button
-                    onClick={() => router.push(`/gem/${gem.id}`)}
-                    className="flex-1 py-2 text-slate-400 text-xs font-semibold hover:text-red-400 transition-colors"
+                    onClick={() => {
+                      setGemToDelete(gem.id);
+                      setShowDeleteModal(true);
+                    }}
+                    disabled={deletingId === gem.id}
+                    className="flex-1 py-2 text-slate-400 text-xs font-semibold hover:text-red-400 transition-colors disabled:opacity-50"
                   >
-                    🗑️ Delete
+                    {deletingId === gem.id ? "Deleting..." : "🗑️ Delete"}
                   </button>
                 </div>
               </div>
@@ -435,7 +459,39 @@ export default function ProfilePage() {
 
         <div className="h-24" />
       </div>
-
+      {/* Delete Confirmation Modal */}
+{showDeleteModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-end">
+    <div className="bg-slate-900 rounded-t-3xl w-full p-6 space-y-4">
+      <div className="text-center">
+        <span className="text-5xl">🗑️</span>
+        <h2 className="text-white font-bold text-xl mt-3">
+          Delete this Gem?
+        </h2>
+        <p className="text-slate-400 text-sm mt-2">
+          This action cannot be undone. Your gem will be permanently removed.
+        </p>
+      </div>
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => {
+            setShowDeleteModal(false);
+            setGemToDelete(null);
+          }}
+          className="flex-1 bg-slate-700 text-white py-3 rounded-2xl font-semibold"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleDeleteGem}
+          className="flex-1 bg-red-600 text-white py-3 rounded-2xl font-semibold"
+        >
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       <BottomNav />
     </div>
   );
