@@ -360,34 +360,109 @@ export default function GemDetailPage() {
 
         {/* Vibe Rating */}
         <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
-          <h3 className="text-white font-bold mb-1">
-            Rate the Vibe
-          </h3>
+          <h3 className="text-white font-bold mb-1">Rate the Vibe</h3>
           <p className="text-slate-400 text-xs mb-4">
             {gem.vibeCount > 0
               ? `${gem.vibeCount} people rated this gem`
               : "Be the first to rate this gem!"}
           </p>
-          <div className="space-y-2">
-            {VIBE_OPTIONS.map((vibe) => (
+
+          {/* Show options if not rated yet */}
+          {!userVibe ? (
+            <div className="space-y-2">
+              {VIBE_OPTIONS.map((vibe) => (
+                <button
+                  key={vibe.score}
+                  onClick={() => handleVibeRating(vibe.score)}
+                  disabled={rating}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all active:scale-95"
+                >
+                  <span className="text-xl">{vibe.icon}</span>
+                  <span className="font-semibold">{vibe.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Show distribution bar after rating */
+            <div className="space-y-3">
+              {VIBE_OPTIONS.map((vibe) => {
+                const count = Object.values(gem.vibeRatings || {}).filter(
+                  (r) => r === vibe.score
+                ).length;
+                const total = gem.vibeCount || 1;
+                const percent = Math.round((count / total) * 100);
+                const isSelected = userVibe === vibe.score;
+
+                return (
+                  <div
+                    key={vibe.score}
+                    className={`rounded-xl px-4 py-3 transition-all ${
+                      isSelected
+                        ? "bg-teal-800 border border-teal-500"
+                        : "bg-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{vibe.icon}</span>
+                        <span
+                          className={`text-sm font-semibold ${
+                            isSelected ? "text-teal-300" : "text-slate-300"
+                          }`}
+                        >
+                          {vibe.label}
+                        </span>
+                        {isSelected && (
+                          <span className="text-teal-400 text-xs">✓ Your rating</span>
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs font-bold ${
+                          isSelected ? "text-teal-300" : "text-slate-400"
+                        }`}
+                      >
+                        {percent}%
+                      </span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-600 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          isSelected ? "bg-teal-400" : "bg-slate-400"
+                        }`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className="text-slate-500 text-xs mt-1">
+                      {count} {count === 1 ? "vote" : "votes"}
+                    </p>
+                  </div>
+                );
+              })}
+
+              {/* Change Rating Button */}
               <button
-                key={vibe.score}
-                onClick={() => handleVibeRating(vibe.score)}
-                disabled={rating}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  userVibe === vibe.score
-                    ? `${vibe.color} text-white`
-                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                }`}
+                onClick={() => {
+                  if (gem && user) {
+                    const newVibeRatings = { ...gem.vibeRatings };
+                    delete newVibeRatings[user.uid];
+                    setGem((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            vibeRatings: newVibeRatings,
+                            vibeCount: Math.max(0, prev.vibeCount - 1),
+                          }
+                        : prev
+                    );
+                  }
+                }}
+                className="w-full py-2.5 text-slate-400 text-sm font-semibold border border-slate-600 rounded-xl hover:border-teal-500 hover:text-teal-400 transition-colors"
               >
-                <span className="text-xl">{vibe.icon}</span>
-                <span className="font-semibold">{vibe.label}</span>
-                {userVibe === vibe.score && (
-                  <span className="ml-auto text-xs">Your rating ✓</span>
-                )}
+                Change Rating
               </button>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Location */}
