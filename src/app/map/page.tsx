@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/navigation";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
-import { MapPin, X, Navigation } from "lucide-react";
+import { MapPin, X, Navigation, RefreshCw } from "lucide-react";
 
 interface Gem {
   id: string;
@@ -25,26 +25,45 @@ export default function MapPage() {
   const router = useRouter();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const [gems, setGems] = useState<Gem[]>([]);
   const [selectedGem, setSelectedGem] = useState<Gem | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [newGemsAvailable, setNewGemsAvailable] = useState(false);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
   }, [user, loading, router]);
 
+  // Real-time listener for new gems
   useEffect(() => {
-    fetchGems();
+    const unsubscribe = onSnapshot(
+      collection(db, "gems"),
+      (snapshot) => {
+        if (initialLoadRef.current) {
+          const data = snapshot.docs
+            .map((doc) => ({ id: doc.id, ...doc.data() }))
+            .filter((g: any) => g.location) as Gem[];
+          setGems(data);
+          initialLoadRef.current = false;
+        } else {
+          // New gems added after initial load
+          setNewGemsAvailable(true);
+        }
+      }
+    );
+    return () => unsubscribe();
   }, []);
 
-  // Init map only once when component mounts
+  // Init map once
   useEffect(() => {
     let ignore = false;
     const init = async () => {
       if (!mapRef.current || mapInstanceRef.current) return;
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css");
-
       if (ignore || mapInstanceRef.current) return;
 
       const map = L.map(mapRef.current, {
@@ -70,29 +89,23 @@ export default function MapPage() {
     };
   }, []);
 
-  // Add markers only after map is ready and gems are loaded
+  // Add markers when map ready or gems change
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
     addMarkers();
   }, [mapReady, gems]);
 
-  const fetchGems = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, "gems"));
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Gem[];
-      setGems(data.filter((g) => g.location));
-    } catch (e) {
-      console.error(e);
-    }
+  const clearMarkers = () => {
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
   };
 
   const addMarkers = async () => {
     const L = (await import("leaflet")).default;
     const map = mapInstanceRef.current;
     if (!map) return;
+
+    clearMarkers();
 
     gems.forEach((gem) => {
       if (!gem.location?.lat || !gem.location?.lng) return;
@@ -122,18 +135,28 @@ export default function MapPage() {
         setSelectedGem(gem);
         map.setView([gem.location.lat, gem.location.lng], 16);
       });
+
+      markersRef.current.push(marker);
     });
   };
 
-  const handleDirections = (gem: Gem) => {
-    // Opens Google Maps directions — completely free for users
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${gem.location.lat},${gem.location.lng}&travelmode=walking`;
-    window.open(url, "_blank");
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const snapshot = await getDocs(collection(db, "gems"));
+      const data = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((g: any) => g.location) as Gem[];
+      setGems(data);
+      setNewGemsAvailable(false);
+    } catch (e) {
+      console.error(e);
+    }
+    setRefreshing(false);
   };
 
-  const handleOpenInMaps = (gem: Gem) => {
-    // Opens OpenStreetMap as fallback
-    const url = `https://www.openstreetmap.org/?mlat=${gem.location.lat}&mlon=${gem.location.lng}&zoom=18`;
+  const handleDirections = (gem: Gem) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${gem.location.lat},${gem.location.lng}&travelmode=walking`;
     window.open(url, "_blank");
   };
 
@@ -150,15 +173,53 @@ export default function MapPage() {
 
       {/* Header */}
       <div className="sticky top-0 bg-slate-900 border-b border-slate-700 px-4 py-3 z-40">
-        <div className="max-w-lg mx-auto">
-          <h1 className="text-white font-bold text-xl">💎 Gem Map</h1>
-          <p className="text-slate-400 text-xs">
-            {gems.length} gems spotted
-          </p>
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <div>
+            <h1 className="text-white font-bold text-xl">💎 Gem Map</h1>
+            <p className="text-slate-400 text-xs">
+              {gems.length} gems spotted
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 bg-slate-800 border border-slate-700 text-slate-300 text-xs px-3 py-2 rounded-full"
+          >
+            <RefreshCw
+              size={14}
+              className={refreshing ? "animate-spin text-teal-400" : ""}
+            />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
       </div>
 
-      {/* Map Container */}
+      {/* New Gems Banner */}
+      {newGemsAvailable && (
+        <button
+          onClick={handleRefresh}
+          className="bg-teal-700 text-white text-sm py-2 text-center w-full z-30"
+        >
+          🆕 New gems available — tap to refresh!
+        </button>
+      )}
+
+      {/* Empty State */}
+      {gems.length === 0 && mapReady && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 bg-slate-800 rounded-2xl p-6 text-center border border-slate-700">
+          <span className="text-5xl">🗺️</span>
+          <p className="text-white font-semibold mt-3">No gems on map yet!</p>
+          <p className="text-slate-400 text-sm mt-1">Be the first to post one</p>
+          <button
+            onClick={() => router.push("/post")}
+            className="mt-4 bg-teal-600 text-white px-6 py-2 rounded-full text-sm font-semibold"
+          >
+            Post a Gem 💎
+          </button>
+        </div>
+      )}
+
+      {/* Map */}
       <div
         ref={mapRef}
         style={{
@@ -171,8 +232,6 @@ export default function MapPage() {
       {/* Gem Preview Card */}
       {selectedGem && (
         <div className="fixed bottom-20 left-4 right-4 bg-slate-800 rounded-2xl p-4 border border-teal-700 z-50 shadow-2xl">
-
-          {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1 pr-2">
               <h3 className="text-white font-bold text-base leading-tight">
@@ -201,7 +260,6 @@ export default function MapPage() {
             </div>
           </div>
 
-          {/* Insider Tip */}
           {selectedGem.insiderTip && (
             <div className="bg-slate-700 rounded-xl px-3 py-2 mb-3">
               <p className="text-slate-300 text-xs leading-relaxed">
@@ -210,9 +268,7 @@ export default function MapPage() {
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-2 mt-2">
-            {/* Directions — opens Google Maps for user, free */}
             <button
               onClick={() => handleDirections(selectedGem)}
               className="flex-1 bg-teal-600 text-white text-xs px-3 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-1"
@@ -220,8 +276,6 @@ export default function MapPage() {
               <Navigation size={14} />
               Directions
             </button>
-
-            {/* View Full Gem */}
             <button
               onClick={() => router.push(`/gem/${selectedGem.id}`)}
               className="flex-1 bg-slate-700 text-white text-xs px-3 py-2.5 rounded-xl font-semibold"
@@ -230,11 +284,9 @@ export default function MapPage() {
             </button>
           </div>
 
-          {/* Posted by */}
           <p className="text-slate-500 text-xs mt-2 text-center">
             posted by {selectedGem.postedBy}
           </p>
-
         </div>
       )}
 
