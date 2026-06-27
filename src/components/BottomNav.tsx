@@ -15,7 +15,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 px-2 py-2 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 px-2 py-2 z-40">
       <div className="flex justify-around items-center max-w-lg mx-auto">
         {tabs.map((tab) => {
           const isActive = pathname === tab.path;
@@ -23,21 +23,33 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => router.push(tab.path)}
-              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all ${
-                isActive
-                  ? "text-teal-400"
-                  : "text-slate-500 active:text-slate-300"
-              }`}
+              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all active:scale-90"
             >
-              <tab.icon
-                size={24}
-                className={isActive ? "text-teal-400" : "text-slate-500"}
-                strokeWidth={isActive ? 2.5 : 1.5}
-              />
-              <span className="text-xs font-medium">{tab.label}</span>
-              {isActive && (
-                <div className="w-1 h-1 rounded-full bg-teal-400" />
-              )}
+              {/* Icon with background when active */}
+              <div
+                className={`p-2 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? "bg-teal-600 scale-110"
+                    : "bg-transparent scale-100"
+                }`}
+              >
+                <tab.icon
+                  size={22}
+                  className={`transition-colors duration-200 ${
+                    isActive ? "text-white" : "text-slate-500"
+                  }`}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                />
+              </div>
+
+              {/* Label */}
+              <span
+                className={`text-xs font-medium transition-colors duration-200 ${
+                  isActive ? "text-teal-400" : "text-slate-600"
+                }`}
+              >
+                {tab.label}
+              </span>
             </button>
           );
         })}
