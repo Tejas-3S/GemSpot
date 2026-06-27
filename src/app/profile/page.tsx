@@ -179,24 +179,25 @@ export default function ProfilePage() {
       <div className="sticky top-0 bg-slate-900 border-b border-slate-700 px-4 py-3 z-40">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <h1 className="text-white font-bold text-xl">👤 Profile</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => router.push("/notifications")}
-              className="text-slate-400"
+              className="flex items-center gap-1.5 bg-slate-800 text-slate-300 text-xs px-3 py-2 rounded-full border border-slate-700"
             >
-              <Bell size={20} />
+              🔔 Activity
             </button>
             <button
               onClick={() => router.push("/edit-profile")}
-              className="text-slate-400"
+              className="flex items-center gap-1.5 bg-slate-800 text-slate-300 text-xs px-3 py-2 rounded-full border border-slate-700"
             >
-              <Edit size={20} />
+              ✏️ Edit
             </button>
             <button
               onClick={handleSignOut}
-              className="text-slate-400"
+              className="flex items-center gap-1.5 bg-red-900 text-red-400 text-xs px-3 py-2 rounded-full border border-red-800"
             >
-              <LogOut size={20} />
+              <LogOut size={12} />
+              Sign Out
             </button>
           </div>
         </div>
