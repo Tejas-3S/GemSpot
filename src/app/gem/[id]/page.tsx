@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Share2,
   Bookmark,
+  X,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 
@@ -67,6 +68,7 @@ export default function GemDetailPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [showImageZoom, setShowImageZoom] = useState(false);
 
   useEffect(() => {
     if (user && gem) checkIfSaved();
@@ -361,12 +363,13 @@ export default function GemDetailPage() {
       <img
         src={gem.imageUrl}
         alt={gem.itemName}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${
+        className={`w-full h-full object-cover transition-opacity duration-300 cursor-pointer ${
           imageLoading ? "opacity-0" : "opacity-100"
         }`}
         onLoad={() => setImageLoading(false)}
         onError={() => setImageLoading(false)}
         loading="lazy"
+        onClick={() => setShowImageZoom(true)}
       />
     </>
   ) : (
@@ -631,6 +634,29 @@ export default function GemDetailPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {showImageZoom && gem.imageUrl && (
+        <div
+          className="fixed inset-0 bg-black z-[100] flex items-center justify-center"
+          onClick={() => setShowImageZoom(false)}
+        >
+          <button
+            onClick={() => setShowImageZoom(false)}
+            className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 z-10"
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={gem.imageUrl}
+            alt={gem.itemName}
+            className="w-full h-auto max-h-screen object-contain"
+          />
+          <p className="absolute bottom-6 left-0 right-0 text-center text-slate-400 text-sm">
+            Tap anywhere to close
+          </p>
         </div>
       )}
 
