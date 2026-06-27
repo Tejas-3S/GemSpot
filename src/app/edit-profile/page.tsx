@@ -1,4 +1,5 @@
 "use client";
+import CitySearch from "@/components/CitySearch";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
@@ -182,37 +183,11 @@ export default function EditProfilePage() {
           <label className="text-slate-300 text-sm font-medium mb-2 block">
             📍 Your City
           </label>
-          <div className="relative">
-            <button
-              onClick={() => setShowCityDropdown(!showCityDropdown)}
-              className="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 flex items-center justify-between"
-            >
-              <span className={city ? "text-white text-sm" : "text-slate-500 text-sm"}>
-                {city || "Select your city"}
-              </span>
-              <span className="text-slate-400">▼</span>
-            </button>
-            {showCityDropdown && (
-              <div className="absolute top-full left-0 right-0 bg-slate-800 border border-slate-600 rounded-2xl mt-1 overflow-hidden z-10 max-h-48 overflow-y-auto">
-                {CITIES.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      setCity(c);
-                      setShowCityDropdown(false);
-                    }}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${
-                      city === c
-                        ? "bg-teal-700 text-white"
-                        : "text-slate-300 hover:bg-slate-700"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <CitySearch
+            selectedCity={city}
+            onCitySelect={(c) => setCity(c)}
+            placeholder="Search your city eg. Karad, Pune..."
+          />
         </div>
 
         {/* Join Date */}

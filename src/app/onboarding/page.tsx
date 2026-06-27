@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, updateDoc } from "firebase/firestore";
+import CitySearch from "@/components/CitySearch";
 
 const SLIDES = [
   {
@@ -25,10 +26,11 @@ const SLIDES = [
       "Post a gem and earn points. Hit 5 upvotes and get your name on it forever!",
   },
   {
-    emoji: "🏆",
-    title: "Become a Legend",
+    emoji: "🏙️",
+    title: "Set Your City",
     description:
-      "Climb from Newcomer to Legend. Top Gem Hunters get featured on the leaderboard.",
+      "Tell us where you are so we can show you the most relevant gems near you!",
+    hasCity: true,
   },
 ];
 
@@ -36,6 +38,7 @@ export default function OnboardingPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedCity, setSelectedCity] = useState("");
 
   const handleNext = () => {
     if (currentSlide < SLIDES.length - 1) {
@@ -50,6 +53,7 @@ export default function OnboardingPage() {
       try {
         await updateDoc(doc(db, "users", user.uid), {
           onboardingDone: true,
+          ...(selectedCity && { city: selectedCity }),
         });
       } catch (e) {
         console.error(e);
@@ -59,6 +63,7 @@ export default function OnboardingPage() {
   };
 
   const slide = SLIDES[currentSlide];
+  const isLastSlide = currentSlide === SLIDES.length - 1;
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between px-6 py-12">
@@ -74,7 +79,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Slide Content */}
-      <div className="flex flex-col items-center text-center space-y-6 flex-1 justify-center">
+      <div className="flex flex-col items-center text-center space-y-6 flex-1 justify-center w-full max-w-xs">
         <div className="w-32 h-32 bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-700">
           <span className="text-7xl">{slide.emoji}</span>
         </div>
@@ -82,10 +87,26 @@ export default function OnboardingPage() {
           <h1 className="text-white font-bold text-2xl leading-tight">
             {slide.title}
           </h1>
-          <p className="text-slate-400 text-base leading-relaxed max-w-xs">
+          <p className="text-slate-400 text-base leading-relaxed">
             {slide.description}
           </p>
         </div>
+
+        {/* City Search on last slide */}
+        {slide.hasCity && (
+          <div className="w-full mt-4">
+            <CitySearch
+              selectedCity={selectedCity}
+              onCitySelect={setSelectedCity}
+              placeholder="Search your city eg. Karad, Pune..."
+            />
+            {!selectedCity && (
+              <p className="text-slate-500 text-xs mt-2 text-center">
+                You can also set this later in your profile
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Dots */}
@@ -108,7 +129,7 @@ export default function OnboardingPage() {
         onClick={handleNext}
         className="w-full max-w-xs bg-teal-600 text-white font-bold py-4 rounded-2xl text-lg"
       >
-        {currentSlide === SLIDES.length - 1 ? "Start Exploring! 🚀" : "Next →"}
+        {isLastSlide ? "Start Exploring! 🚀" : "Next →"}
       </button>
 
     </div>
