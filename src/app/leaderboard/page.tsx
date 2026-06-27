@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc } from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
 
 interface UserStat {
@@ -49,7 +49,6 @@ export default function LeaderboardPage() {
         ...doc.data(),
       })) as any[];
 
-      // Group by user
       const userMap: { [uid: string]: UserStat } = {};
 
       gems.forEach((gem) => {
@@ -80,6 +79,23 @@ export default function LeaderboardPage() {
         if ((gem.upvotes || 0) >= 95) u.points += 50;
       });
 
+      // Fetch Firestore profile photo for each user
+      const uids = Object.keys(userMap);
+      await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const userSnap = await getDoc(doc(db, "users", uid));
+            if (userSnap.exists()) {
+              const data = userSnap.data();
+              if (data.photo) userMap[uid].photo = data.photo;
+              if (data.name) userMap[uid].name = data.name;
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        })
+      );
+
       const sorted = Object.values(userMap).map((u) => {
         const level = getLevel(u.points);
         return { ...u, level: level.title, levelIcon: level.icon };
@@ -90,7 +106,7 @@ export default function LeaderboardPage() {
       console.error(e);
     }
     setLoading(false);
-  };
+  };  
 
   const getSorted = () => {
     if (activeTab === "points")
