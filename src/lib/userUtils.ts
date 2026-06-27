@@ -16,6 +16,7 @@ export interface UserProfile {
   joinedAt: any;
   savedGems: string[];
   collections: Collection[];
+  onboardingDone?: boolean;
 }
 
 export interface Collection {

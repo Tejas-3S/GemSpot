@@ -17,13 +17,25 @@ export default function LoginPage() {
   }, [user, router]);
 
   const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    await createOrGetUser(result.user);
-  } catch (error) {
-    console.error("Login failed:", error);
-  }
-};
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const userProfile = await createOrGetUser(result.user);
+      if (userProfile.onboardingDone) {
+        router.push("/home");
+      } else {
+        router.push("/onboarding");
+      }
+    } catch (error: any) {
+      if (
+        error.code === "auth/cancelled-popup-request" ||
+        error.code === "auth/popup-closed-by-user"
+      ) {
+        return;
+      }
+      console.error("Login failed:", error);
+      alert("Login failed. Please try again!");
+    }
+  };
 
   if (loading) {
     return (
