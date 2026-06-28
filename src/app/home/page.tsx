@@ -14,6 +14,7 @@ import {
   startAfter,
   getDocs,
   DocumentSnapshot,
+  where,
 } from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
 import GemCard from "@/components/GemCard";
@@ -57,13 +58,13 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user) {
+    if (user && profile !== undefined) {
       setGems([]);
       setLastDoc(null);
       setHasMore(true);
       fetchGems(true);
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, profile?.city]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -91,22 +92,44 @@ export default function HomePage() {
 
     try {
       const orderField = activeTab === "trending" ? "upvotes" : "createdAt";
-      let q = query(
-        collection(db, "gems"),
-        orderBy(orderField, "desc"),
-        limit(PAGE_SIZE)
-      );
 
-      if (!fresh && lastDoc) {
-        q = query(
+      // Build query — filter by city if user has one
+      let baseQuery;
+      if (profile?.city) {
+        baseQuery = query(
+          collection(db, "gems"),
+          where("city", "==", profile.city),
+          orderBy(orderField, "desc"),
+          limit(PAGE_SIZE)
+        );
+      } else {
+        baseQuery = query(
           collection(db, "gems"),
           orderBy(orderField, "desc"),
-          startAfter(lastDoc),
           limit(PAGE_SIZE)
         );
       }
 
-      const snapshot = await getDocs(q);
+      if (!fresh && lastDoc) {
+        if (profile?.city) {
+          baseQuery = query(
+            collection(db, "gems"),
+            where("city", "==", profile.city),
+            orderBy(orderField, "desc"),
+            startAfter(lastDoc),
+            limit(PAGE_SIZE)
+          );
+        } else {
+          baseQuery = query(
+            collection(db, "gems"),
+            orderBy(orderField, "desc"),
+            startAfter(lastDoc),
+            limit(PAGE_SIZE)
+          );
+        }
+      }
+
+      const snapshot = await getDocs(baseQuery);
       const data = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
