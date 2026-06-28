@@ -56,20 +56,36 @@ export default function PostPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("Image too large! Please select an image under 5MB.");
       return;
     }
 
     setSelectedImage(file);
-    const reader = new FileReader();
-    reader.onload = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
+
+    // Try to show preview
+    try {
+      if (file.type.startsWith("image/")) {
+        const objectUrl = URL.createObjectURL(file);
+        setImagePreview(objectUrl);
+      } else {
+        // Fallback to FileReader for unusual formats
+        const reader = new FileReader();
+        reader.onload = () => setImagePreview(reader.result as string);
+        reader.onerror = () => {
+          // Show placeholder if preview fails
+          setImagePreview("/icons/icon-192x192.png");
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (e) {
+      // Show placeholder if everything fails
+      setImagePreview("/icons/icon-192x192.png");
+    }
   };
 
   const handleRemoveImage = () => {
