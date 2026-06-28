@@ -97,6 +97,33 @@ export default function MapPage() {
     };
   }, []);
 
+  const centerMapOnCity = async (cityName: string) => {
+    if (!mapInstanceRef.current) return;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          cityName
+        )}&format=json&limit=1&countrycodes=in`
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        const { lat, lon } = data[0];
+        mapInstanceRef.current.setView(
+          [parseFloat(lat), parseFloat(lon)],
+          13
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.city && mapReady) {
+      centerMapOnCity(profile.city);
+    }
+  }, [profile?.city, mapReady]);
+
   // Add markers when map ready or gems change
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
