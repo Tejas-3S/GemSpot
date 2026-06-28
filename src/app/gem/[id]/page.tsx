@@ -45,6 +45,7 @@ interface Gem {
   locationName: string;
   imageUrl?: string;
   createdAt: any;
+  isFirstFinder?: boolean;
 }
 
 const VIBE_OPTIONS = [
@@ -287,15 +288,13 @@ export default function GemDetailPage() {
 
   const getDiscovererTag = () => {
     if (!gem) return null;
+    // Only show discoverer tag if original first finder
+    if (!gem.isFirstFinder) return null;
     const upvotes = gem.upvotes;
-    if (upvotes >= 95)
-      return `🏆 Legendary Find by ${gem.postedBy}`;
-    if (upvotes >= 45)
-      return `📍 ${gem.postedBy}'s Discovery`;
-    if (upvotes >= 20)
-      return `Discovered by @${gem.postedBy}`;
-    if (upvotes >= 5)
-      return `🥇 First Finder`;
+    if (upvotes >= 95) return `🏆 Legendary Find by ${gem.postedBy}`;
+    if (upvotes >= 45) return `📍 ${gem.postedBy}'s Discovery`;
+    if (upvotes >= 20) return `Discovered by @${gem.postedBy}`;
+    if (upvotes >= 5) return `🥇 First Finder`;
     return null;
   };
 

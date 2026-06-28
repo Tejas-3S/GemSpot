@@ -9,6 +9,7 @@ import { Clock, Upload, ChevronDown, X, } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import LocationPicker from "@/components/LocationPicker";
 import { uploadImage } from "@/lib/uploadImage";
+import { checkDuplicate, DuplicateResult } from "@/lib/duplicateCheck";
 
 const PRICE_RANGES = [
   { label: "🟢 Pocket Friendly", value: "₹0-30" },
@@ -46,6 +47,9 @@ export default function PostPage() {
   const [loading, setLoading] = useState(false);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState<DuplicateResult | null>(null);
+  const [isFirstFinder, setIsFirstFinder] = useState(true);
 
   // Image states
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -76,16 +80,39 @@ export default function PostPage() {
 
   const handleSubmit = async () => {
     if (!user) return;
-    if (!placeName || !itemName || !price || !bestTime) {
-      alert("Please fill in all required fields!");
+    if (!placeName || !itemName || !price || !bestTime || !selectedImage) {
+      alert("Please fill in all required fields including a photo!");
       return;
     }
 
     setLoading(true);
+
+    // Check for duplicates first
+    if (profile?.city) {
+      const duplicate = await checkDuplicate(
+        profile.city,
+        itemName,
+        placeName,
+        location
+      );
+
+      if (duplicate.isDuplicate) {
+        setDuplicateResult(duplicate);
+        setIsFirstFinder(false);
+        setShowDuplicateWarning(true);
+        setLoading(false);
+        return;
+      }
+    }
+
+    await postGem(true);
+  };
+
+  const postGem = async (firstFinder: boolean) => {
+    if (!user) return;
+    setLoading(true);
     try {
       let imageUrl = "";
-
-      // Upload image if selected
       if (selectedImage) {
         setUploadingImage(true);
         imageUrl = await uploadImage(selectedImage);
@@ -102,6 +129,7 @@ export default function PostPage() {
         locationName,
         imageUrl,
         city: profile?.city || "",
+        isFirstFinder: firstFinder,
         postedBy: profile?.name || user.displayName,
         postedByUid: user.uid,
         postedByPhoto: profile?.photo || user.photoURL,
@@ -112,14 +140,19 @@ export default function PostPage() {
         createdAt: serverTimestamp(),
       });
 
+      localStorage.removeItem("gemspot_draft");
       alert("Gem posted successfully! 💎");
       router.push("/home");
     } catch (error: any) {
-      console.error("Full error:", error);
-      alert("Error: " + error.message);
       setUploadingImage(false);
       setLoading(false);
+      if (!navigator.onLine) {
+        alert("No internet connection! Please check your network and try again.");
+      } else {
+        alert("Error: " + error.message);
+      }
     }
+    setLoading(false);
   };
 
   return (
@@ -413,6 +446,93 @@ export default function PostPage() {
 
         <div className="h-24" />
       </div>
+
+        {/* Duplicate Warning Modal */}
+        {showDuplicateWarning && duplicateResult?.existingGem && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-end">
+            <div className="bg-slate-900 rounded-t-3xl w-full p-6 space-y-4">
+
+              {/* Icon */}
+              <div className="text-center">
+                <span className="text-5xl">⚠️</span>
+                <h2 className="text-white font-bold text-xl mt-3">
+                  Similar Gem Already Exists!
+                </h2>
+              </div>
+
+              {/* Existing Gem Info */}
+              <div className="bg-slate-800 rounded-2xl p-4 border border-yellow-700">
+                <p className="text-yellow-400 text-sm font-semibold">
+                  "{duplicateResult.existingGem.itemName}"
+                </p>
+                <p className="text-slate-400 text-sm mt-1">
+                  at {duplicateResult.existingGem.placeName}
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  Posted by {duplicateResult.existingGem.postedBy}
+                  {duplicateResult.existingGem.distance < Infinity &&
+                    ` • ${duplicateResult.existingGem.distance}m away`}
+                </p>
+              </div>
+
+              {/* Badge Warning */}
+              <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-2">
+                <p className="text-white text-sm font-semibold mb-2">
+                  If you post this:
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400">❌</span>
+                  <p className="text-slate-400 text-sm">
+                    You won't get First Finder badge
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400">❌</span>
+                  <p className="text-slate-400 text-sm">
+                    You won't get Discoverer tag
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400">✅</span>
+                  <p className="text-slate-400 text-sm">
+                    You can still share your experience
+                  </p>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDuplicateWarning(false);
+                    setDuplicateResult(null);
+                  }}
+                  className="flex-1 bg-slate-700 text-white py-3 rounded-2xl font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDuplicateWarning(false);
+                    postGem(false);
+                  }}
+                  className="flex-1 bg-yellow-600 text-white py-3 rounded-2xl font-semibold"
+                >
+                  Post Anyway
+                </button>
+              </div>
+
+              {/* View Existing Gem */}
+              <button
+                onClick={() => router.push(`/gem/${duplicateResult.existingGem!.id}`)}
+                className="w-full text-teal-400 text-sm text-center py-2"
+              >
+                View existing gem instead →
+              </button>
+
+            </div>
+          </div>
+        )}
 
       <BottomNav />
     </div>
