@@ -329,6 +329,7 @@ export default function PostPage() {
           </label>
           <LocationPicker
             selectedLocation={locationName}
+            userCity={profile?.city}
             onLocationSelect={({ lat, lng, name }) => {
               setLocation({ lat, lng });
               setLocationName(name);

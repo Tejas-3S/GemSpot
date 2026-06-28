@@ -9,11 +9,13 @@ interface LocationPickerProps {
     name: string;
   }) => void;
   selectedLocation?: string;
+  userCity?: string;
 }
 
 export default function LocationPicker({
   onLocationSelect,
   selectedLocation,
+  userCity,
 }: LocationPickerProps) {
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState<"choose" | "map" | "search">("choose");
@@ -43,9 +45,33 @@ export default function LocationPicker({
     const L = (await import("leaflet")).default;
     await import("leaflet/dist/leaflet.css");
 
-    const defaultLocation: [number, number] = [18.5204, 73.8567];
+    // Get city coordinates from Nominatim
+    let defaultLocation: [number, number] = [18.5204, 73.8567]; // Pune fallback
 
-    const map = L.map(mapRef.current).setView(defaultLocation, 15);
+    if (userCity) {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+            userCity
+          )}&format=json&limit=1&countrycodes=in`
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          defaultLocation = [
+            parseFloat(data[0].lat),
+            parseFloat(data[0].lon),
+          ];
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    const map = L.map(mapRef.current, {
+      center: defaultLocation,
+      zoom: 15,
+      zoomControl: true,
+    });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
