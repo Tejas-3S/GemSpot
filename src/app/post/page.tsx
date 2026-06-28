@@ -101,6 +101,7 @@ export default function PostPage() {
         location,
         locationName,
         imageUrl,
+        city: profile?.city || "",
         postedBy: profile?.name || user.displayName,
         postedByUid: user.uid,
         postedByPhoto: profile?.photo || user.photoURL,
