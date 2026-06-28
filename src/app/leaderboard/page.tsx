@@ -1,9 +1,10 @@
 "use client";
+import { useUserContext } from "@/context/UserContext";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { collection, getDocs, getDoc, doc } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, query, where } from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
 
 interface UserStat {
@@ -36,6 +37,14 @@ export default function LeaderboardPage() {
   const [leaders, setLeaders] = useState<UserStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"points" | "gems" | "upvotes">("points");
+  const { profile } = useUserContext();
+  const [cityFilter, setCityFilter] = useState<"city" | "all">("city");
+
+  useEffect(() => {
+    setLoading(true);
+    setLeaders([]);
+    fetchLeaderboard();
+  }, [cityFilter, profile?.city]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -43,7 +52,17 @@ export default function LeaderboardPage() {
 
   const fetchLeaderboard = async () => {
     try {
-      const snapshot = await getDocs(collection(db, "gems"));
+      let gemsQuery;
+      if (cityFilter === "city" && profile?.city) {
+        gemsQuery = query(
+          collection(db, "gems"),
+          where("city", "==", profile.city)
+        );
+      } else {
+        gemsQuery = query(collection(db, "gems"));
+      }
+
+      const snapshot = await getDocs(gemsQuery);
       const gems = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -79,7 +98,7 @@ export default function LeaderboardPage() {
         if ((gem.upvotes || 0) >= 95) u.points += 50;
       });
 
-      // Fetch Firestore profile photo for each user
+      // Fetch fresh Firestore profile for each user
       const uids = Object.keys(userMap);
       await Promise.all(
         uids.map(async (uid) => {
@@ -106,7 +125,7 @@ export default function LeaderboardPage() {
       console.error(e);
     }
     setLoading(false);
-  };  
+  }; 
 
   const getSorted = () => {
     if (activeTab === "points")
@@ -137,12 +156,40 @@ export default function LeaderboardPage() {
     <div className="min-h-screen bg-slate-900">
 
       {/* Header */}
-      <div className="sticky top-0 bg-slate-900 border-b border-slate-700 px-4 py-3 z-40">
-        <div className="max-w-lg mx-auto">
-          <h1 className="text-white font-bold text-xl">🏆 Leaderboard</h1>
-          <p className="text-slate-400 text-xs">Top Gem Hunters in your city</p>
+<div className="sticky top-0 bg-slate-900 border-b border-slate-700 px-4 py-3 z-40">
+  <div className="max-w-lg mx-auto">
+    <h1 className="text-white font-bold text-xl">🏆 Leaderboard</h1>
+    <p className="text-slate-400 text-xs">
+      Top Gem Hunters {cityFilter === "city" && profile?.city
+        ? `in ${profile.city}`
+        : "across India"}
+    </p>
+
+    {/* City / All Toggle */}
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => setCityFilter("city")}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              cityFilter === "city"
+                ? "bg-teal-600 text-white"
+                : "bg-slate-800 text-slate-400"
+            }`}
+          >
+            📍 {profile?.city || "My City"}
+          </button>
+          <button
+            onClick={() => setCityFilter("all")}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              cityFilter === "all"
+                ? "bg-teal-600 text-white"
+                : "bg-slate-800 text-slate-400"
+            }`}
+          >
+            🌍 All India
+          </button>
         </div>
       </div>
+    </div>
 
       <div className="max-w-lg mx-auto px-4 py-4">
 
