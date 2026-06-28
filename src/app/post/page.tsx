@@ -56,31 +56,42 @@ export default function PostPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    alert("Image too large! Please select an image under 5MB.");
-    return;
-  }
-
-  setSelectedImage(file);
-
-  // Use FileReader for preview — most compatible across all mobile browsers
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    if (reader.result && typeof reader.result === "string") {
-      setImagePreview(reader.result);
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large! Please select an image under 5MB.");
+      return;
     }
+
+    // Read file IMMEDIATELY — synchronously before anything else
+    const reader = new FileReader();
+    
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setImagePreview(result);
+      // Convert base64 back to file for upload
+      const base64 = result.split(",")[1];
+      const mime = result.split(",")[0].split(":")[1].split(";")[0];
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mime });
+      const newFile = new File([blob], "image.jpg", { type: mime });
+      setSelectedImage(newFile);
+    };
+
+    reader.onerror = () => {
+      alert("Could not read image. Please try again.");
+    };
+
+    // Start reading immediately
+    reader.readAsDataURL(file);
   };
-  reader.onerror = () => {
-    // Show gem icon as placeholder if preview fails
-    setImagePreview("");
-    alert("Could not preview image but it will still upload correctly.");
-  };
-  reader.readAsDataURL(file);
-};
 
   const handleRemoveImage = () => {
     setSelectedImage(null);
