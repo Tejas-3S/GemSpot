@@ -1,4 +1,5 @@
 "use client";
+import CitySearch from "@/components/CitySearch";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useUserContext } from "@/context/UserContext";
 import { Search, Bell } from "lucide-react";
@@ -15,6 +16,8 @@ import {
   getDocs,
   DocumentSnapshot,
   where,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
 import GemCard from "@/components/GemCard";
@@ -52,6 +55,8 @@ export default function HomePage() {
   const [hasMore, setHasMore] = useState(true);
   const { profile } = useUserContext();
   const { isPulling, pullDistance } = usePullToRefresh(() => fetchGems(true));
+  const [showCitySwitcher, setShowCitySwitcher] = useState(false);
+  const [tempCity, setTempCity] = useState("");
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
@@ -79,6 +84,22 @@ export default function HomePage() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  const handleCityChange = async (newCity: string) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        city: newCity,
+      });
+      setShowCitySwitcher(false);
+      setGems([]);
+      setLastDoc(null);
+      setHasMore(true);
+      fetchGems(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchGems = async (fresh = false) => {
     if (!navigator.onLine) {
@@ -179,9 +200,15 @@ export default function HomePage() {
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <h1 className="text-white font-bold text-xl">💎 GemSpot</h1>
-            <p className="text-slate-400 text-xs">
-  {profile?.city ? `📍 ${profile.city}` : "📍 Set your city in profile"}
-</p>
+            <button
+              onClick={() => {
+                setTempCity(profile?.city || "");
+                setShowCitySwitcher(true);
+              }}
+              className="flex items-center gap-1 text-slate-400 text-xs hover:text-teal-400 transition-colors"
+            >
+              📍 {profile?.city || "Set city"} ▾
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -295,7 +322,73 @@ export default function HomePage() {
         <div className="h-24" />
       </div>
 
+        {/* City Switcher Modal */}
+    {showCitySwitcher && (
+      <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-end">
+        <div className="bg-slate-900 rounded-t-3xl w-full p-6 space-y-4">
+
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-white font-bold text-lg">
+              Switch City
+            </h2>
+            <button
+              onClick={() => setShowCitySwitcher(false)}
+              className="text-slate-400"
+            >
+              ✕
+            </button>
+          </div>
+
+          <p className="text-slate-400 text-sm">
+            Search and select any city to explore gems there
+          </p>
+
+          {/* City Search */}
+          <CitySearch
+            selectedCity={tempCity}
+            onCitySelect={setTempCity}
+            placeholder="Search any city in India..."
+          />
+
+          {/* Quick Select Popular Cities */}
+          <div>
+            <p className="text-slate-500 text-xs mb-2">Popular cities</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "Mumbai", "Pune", "Delhi", "Bangalore",
+                "Hyderabad", "Chennai", "Kolkata", "Ahmedabad",
+                "Karad", "Nashik", "Nagpur", "Surat",
+              ].map((city) => (
+                <button
+                  key={city}
+                  onClick={() => setTempCity(city)}
+                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                    tempCity === city
+                      ? "bg-teal-600 text-white"
+                      : "bg-slate-800 text-slate-300 border border-slate-700"
+                  }`}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Confirm Button */}
+          <button
+            onClick={() => handleCityChange(tempCity)}
+            disabled={!tempCity}
+            className="w-full bg-teal-600 text-white font-bold py-4 rounded-2xl disabled:bg-slate-700 disabled:text-slate-500"
+          >
+            {tempCity ? `Show gems in ${tempCity} →` : "Select a city first"}
+          </button>
+
+        </div>
+      </div>
+    )}
+
       <BottomNav />
     </div>
   );
-}
+} 
