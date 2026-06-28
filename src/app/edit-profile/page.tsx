@@ -276,7 +276,7 @@ export default function EditProfilePage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
         onChange={handlePhotoUpload}
         className="hidden"
       />

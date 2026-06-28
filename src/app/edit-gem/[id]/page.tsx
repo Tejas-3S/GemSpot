@@ -379,7 +379,7 @@ export default function EditGemPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
         onChange={handleImageSelect}
         className="hidden"
       />

@@ -249,7 +249,7 @@ export default function PostPage() {
     </>
   )}
 
-  {/* Hidden Camera Input */}
+  {/* Camera Input — capture forces camera only */}
   <input
     ref={cameraInputRef}
     type="file"
@@ -259,11 +259,11 @@ export default function PostPage() {
     className="hidden"
   />
 
-  {/* Hidden Gallery Input */}
+  {/* Gallery Input — no capture, proper mime types for gallery access */}
   <input
     ref={fileInputRef}
     type="file"
-    accept="image/*"
+    accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
     onChange={handleImageSelect}
     className="hidden"
   />
