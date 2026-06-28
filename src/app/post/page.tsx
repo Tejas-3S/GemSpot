@@ -57,36 +57,30 @@ export default function PostPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image too large! Please select an image under 5MB.");
-      return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Image too large! Please select an image under 5MB.");
+    return;
+  }
 
-    setSelectedImage(file);
+  setSelectedImage(file);
 
-    // Try to show preview
-    try {
-      if (file.type.startsWith("image/")) {
-        const objectUrl = URL.createObjectURL(file);
-        setImagePreview(objectUrl);
-      } else {
-        // Fallback to FileReader for unusual formats
-        const reader = new FileReader();
-        reader.onload = () => setImagePreview(reader.result as string);
-        reader.onerror = () => {
-          // Show placeholder if preview fails
-          setImagePreview("/icons/icon-192x192.png");
-        };
-        reader.readAsDataURL(file);
-      }
-    } catch (e) {
-      // Show placeholder if everything fails
-      setImagePreview("/icons/icon-192x192.png");
+  // Use FileReader for preview — most compatible across all mobile browsers
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    if (reader.result && typeof reader.result === "string") {
+      setImagePreview(reader.result);
     }
   };
+  reader.onerror = () => {
+    // Show gem icon as placeholder if preview fails
+    setImagePreview("");
+    alert("Could not preview image but it will still upload correctly.");
+  };
+  reader.readAsDataURL(file);
+};
 
   const handleRemoveImage = () => {
     setSelectedImage(null);
@@ -200,11 +194,18 @@ export default function PostPage() {
   {/* Preview */}
   {imagePreview ? (
     <div className="relative w-full h-48 rounded-2xl overflow-hidden">
-      <img
-        src={imagePreview}
-        alt="Preview"
-        className="w-full h-full object-cover"
-      />
+      {imagePreview ? (
+        <img
+          src={imagePreview}
+          alt="Preview"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+          <span className="text-4xl">📸</span>
+          <p className="text-slate-400 text-xs mt-2">Image selected</p>
+        </div>
+      )}
       <button
         onClick={handleRemoveImage}
         className="absolute top-2 right-2 bg-black bg-opacity-60 text-white rounded-full p-1"
