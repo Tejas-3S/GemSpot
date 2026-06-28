@@ -3,9 +3,10 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/navigation";
-import { collection, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import BottomNav from "@/components/BottomNav";
 import { MapPin, X, Navigation, RefreshCw } from "lucide-react";
+import { useUserContext } from "@/context/UserContext";
 
 interface Gem {
   id: string;
@@ -32,6 +33,7 @@ export default function MapPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [newGemsAvailable, setNewGemsAvailable] = useState(false);
   const initialLoadRef = useRef(true);
+  const { profile } = useUserContext();
 
   useEffect(() => {
     if (!loading && !user) router.push("/");
@@ -39,23 +41,29 @@ export default function MapPage() {
 
   // Real-time listener for new gems
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "gems"),
-      (snapshot) => {
-        if (initialLoadRef.current) {
-          const data = snapshot.docs
-            .map((doc) => ({ id: doc.id, ...doc.data() }))
-            .filter((g: any) => g.location) as Gem[];
-          setGems(data);
-          initialLoadRef.current = false;
-        } else {
-          // New gems added after initial load
-          setNewGemsAvailable(true);
-        }
+    let q;
+    if (profile?.city) {
+      q = query(
+        collection(db, "gems"),
+        where("city", "==", profile.city)
+      );
+    } else {
+      q = collection(db, "gems");
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (initialLoadRef.current) {
+        const data = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((g: any) => g.location) as Gem[];
+        setGems(data);
+        initialLoadRef.current = false;
+      } else {
+        setNewGemsAvailable(true);
       }
-    );
+    });
     return () => unsubscribe();
-  }, []);
+  }, [profile?.city]);
 
   // Init map once
   useEffect(() => {
@@ -143,7 +151,16 @@ export default function MapPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const snapshot = await getDocs(collection(db, "gems"));
+      let q;
+      if (profile?.city) {
+        q = query(
+          collection(db, "gems"),
+          where("city", "==", profile.city)
+        );
+      } else {
+        q = query(collection(db, "gems"));
+      }
+      const snapshot = await getDocs(q);
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((g: any) => g.location) as Gem[];
@@ -177,7 +194,7 @@ export default function MapPage() {
           <div>
             <h1 className="text-white font-bold text-xl">💎 Gem Map</h1>
             <p className="text-slate-400 text-xs">
-              {gems.length} gems spotted
+              {gems.length} gems in {profile?.city || "your area"}
             </p>
           </div>
           <button
